@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slitting Coil Inspection System</title>
+<style>
+  /* ── RESET & BASE ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue:    #1a56a0;
+    --blue-lt: #dce8f5;
+    --blue-dk: #0f3a70;
+    --green:   #217346;
+    --green-lt:#e8f5ee;
+    --red:     #c00000;
+    --red-lt:  #fce8e8;
+    --amber:   #9c6a00;
+    --amber-lt:#fff3cd;
+    --gray1:   #f0f0f0;
+    --gray2:   #d0d0d0;
+    --gray3:   #a0a0a0;
+    --gray4:   #555;
+    --white:   #ffffff;
+    --shadow:  0 2px 8px rgba(0,0,0,.15);
+    --font:    'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --radius:  4px;
+  }
+  body { font-family: var(--font); font-size: 13px; background: #e8ecf0; color: #222; min-height: 100vh; }
+
+  /* ── VIEWS ── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ══════════════════════════════════════
+     LOGIN FORM
+  ══════════════════════════════════════ */
+  #view-login {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #1a3a6b 0%, #1a56a0 50%, #217346 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #view-login.active { display: flex; }
+  .login-box {
+    background: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.3);
+    width: 380px;
+    overflow: hidden;
+  }
+  .login-header {
+    background: var(--blue);
+    padding: 24px 28px 20px;
+    text-align: center;
+  }
+  .login-header .logo-bar {
+    display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px;
+  }
+  .login-header .logo-icon {
+    width: 36px; height: 36px; background: var(--green); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .login-header .logo-icon svg { width: 22px; height: 22px; fill: #fff; }
+  .login-header h1 { color: #fff; font-size: 16px; font-weight: 700; letter-spacing: .5px; }
+  .login-header p  { color: rgba(255,255,255,.75); font-size: 11px; margin-top: 2px; }
+  .login-body { padding: 28px; }
+  .login-body label { display: block; font-size: 11px; font-weight: 600; color: var(--gray4); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .5px; }
+  .login-body input {
+    width: 100%; padding: 9px 12px; border: 1.5px solid var(--gray2);
+    border-radius: var(--radius); font-size: 13px; font-family: var(--font);
+    outline: none; transition: border-color .15s;
+  }
+  .login-body input:focus { border-color: var(--blue); }
+  .login-body .field { margin-bottom: 16px; }
+  .login-body .field-pass { position: relative; }
+  .login-body .field-pass input { padding-right: 38px; }
+  .toggle-pass {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; color: var(--gray3); padding: 2px;
+  }
+  .btn-login {
+    width: 100%; padding: 10px; background: var(--blue); color: #fff;
+    border: none; border-radius: var(--radius); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: background .15s;
+  }
+  .btn-login:hover { background: var(--blue-dk); }
+  .login-err { display: none; background: var(--red-lt); color: var(--red); border: 1px solid #f5c0c0; border-radius: var(--radius); padding: 8px 12px; font-size: 12px; margin-bottom: 14px; }
+  .login-err.show { display: block; }
+  .login-footer { padding: 12px 28px; background: var(--gray1); border-top: 1px solid var(--gray2); font-size: 11px; color: var(--gray3); text-align: center; }
+
+  /* ══════════════════════════════════════
+     SHELL / NAVBAR
+  ══════════════════════════════════════ */
+  #view-app { display: none; flex-direction: column; min-height: 100vh; }
+  #view-app.active { display: flex; }
+  .navbar {
+    background: var(--blue); color: #fff;
+    display: flex; align-items: center; gap: 0; height: 40px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.2); flex-shrink: 0;
+  }
+  .navbar .nav-brand {
+    padding: 0 16px; font-size: 13px; font-weight: 700; letter-spacing: .4px;
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  }
+  .navbar .nav-brand span { color: rgba(255,255,255,.6); font-weight: 400; }
+  .navbar .nav-spacer { flex: 1; }
+  .navbar .nav-user {
+    padding: 0 16px; font-size: 12px; color: rgba(255,255,255,.8);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .nav-btn {
+    background: none; border: 1px solid rgba(255,255,255,.35); color: #fff;
+    padding: 4px 10px; border-radius: var(--radius); font-size: 11px; cursor: pointer;
+    transition: background .1s;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,.15); }
+  .app-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ══════════════════════════════════════
+     PANEL SYSTEM (tabs inside app)
+  ══════════════════════════════════════ */
+  .panel { display: none; flex: 1; flex-direction: column; overflow: auto; padding: 16px; }
+  .panel.active { display: flex; }
+
+  /* ══════════════════════════════════════
+     COMMON COMPONENTS
+  ══════════════════════════════════════ */
+  .card {
+    background: var(--white); border: 1px solid var(--gray2);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+  }
+  .card-header {
+    background: var(--blue); color: #fff; padding: 7px 12px;
+    font-size: 12px; font-weight: 700; letter-spacing: .3px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-header.green { background: var(--green); }
+  .card-body { padding: 12px 14px; }
+  .row-form { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .row-form label { font-size: 11px; font-weight: 600; color: var(--gray4); white-space: nowrap; min-width: 100px; }
+  .row-form .val { font-size: 12px; color: #333; min-width: 160px; }
+  input[type=text], input[type=number], input[type=password], select {
+    border: 1px solid var(--gray2); border-radius: var(--radius);
+    padding: 4px 8px; font-size: 12px; font-family: var(--font); outline: none;
+    transition: border-color .15s, background .15s;
+  }
+  input:focus, select:focus { border-color: var(--blue); background: #f5f9ff; }
+  input.ng { border-color: var(--red); background: var(--red-lt); }
+  input.ok { border-color: var(--green); background: var(--green-lt); }
+  input[readonly] { background: var(--gray1); color: var(--gray4); }
+  .btn {
+    padding: 5px 14px; border: 1px solid var(--gray2); background: var(--gray1);
+    border-radius: var(--radius); font-size: 12px; font-family: var(--font);
+    cursor: pointer; transition: all .1s; white-space: nowrap;
+  }
+  .btn:hover { background: var(--gray2); }
+  .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue-dk); }
+  .btn-primary:hover { background: var(--blue-dk); }
+  .btn-success { background: var(--green); color: #fff; border-color: #1a5c38; }
+  .btn-success:hover { background: #185c30; }
+  .btn-danger  { background: var(--red); color: #fff; border-color: #900; }
+  .btn-danger:hover { background: #900; }
+  .btn-sm { padding: 3px 9px; font-size: 11px; }
+
+  /* ══════════════════════════════════════
+     MAIN FORM (InspectionMainForm)
+  ══════════════════════════════════════ */
+  #panel-main { gap: 12px; }
+  .main-top { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .process-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .process-row label { font-size: 11px; font-weight: 600; color: var(--gray4); min-width: 110px; }
+  .process-row input { flex: 1; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
+  .info-item { display: flex; gap: 6px; font-size: 11px; margin-bottom: 4px; }
+  .info-item .lbl { color: var(--gray3); min-width: 80px; white-space: nowrap; }
+  .info-item .val { color: #222; font-weight: 500; }
+
+  /* ListView */
+  .listview-wrap { flex: 1; overflow: auto; border: 1px solid var(--gray2); border-radius: var(--radius); }
+  table.lv {
+    width: 100%; border-collapse: collapse; font-size: 11px;
+  }
+  table.lv thead th {
+    background: var(--blue); color: #fff; padding: 5px 8px; text-align: left;
+    font-size: 11px; font-weight: 600; white-space: nowrap; position: sticky; top: 0; z-index: 1;
+  }
+  table.lv tbody tr { cursor: pointer; }
+  table.lv tbody tr:nth-child(even) { background: #f7f8fa; }
+  table.lv tbody tr:hover { background: var(--blue-lt); }
+  table.lv tbody tr.selected { background: #c8d8f0; }
+  table.lv tbody tr.done td:first-child::before { content: '✓ '; color: var(--green); }
+  table.lv tbody td { padding: 4px 8px; border-bottom: 1px solid #eee; white-space: nowrap; }
+  .badge-done { background: var(--green); color: #fff; border-radius: 3px; padding: 1px 5px; font-size: 10px; }
+  .badge-pending { background: var(--amber-lt); color: var(--amber); border-radius: 3px; padding: 1px 5px; font-size: 10px; }
+
+  .bottom-bar { display: flex; align-items: center; gap: 8px; padding: 8px 0 0; }
+  .conn-status { font-size: 11px; display: flex; align-items: center; gap: 5px; }
+  .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray2); }
+  .conn-dot.ok { background: var(--green); }
+  .conn-dot.err { background: var(--red); }
+
+  /* ══════════════════════════════════════
+     INSPECTION FORM (frmSlitterThick)
+  ══════════════════════════════════════ */
+  #panel-insp { gap: 12px; }
+  .insp-header-info { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
+  .insp-info-box { background: var(--gray1); border: 1px solid var(--gray2); border-radius: var(--radius); padding: 6px 10px; }
+  .insp-info-box .lbl { font-size: 10px; color: var(--gray3); font-weight: 600; text-transform: uppercase; }
+  .insp-info-box .val { font-size: 12px; font-weight: 700; color: #222; margin-top: 2px; }
+
+  /* Measurement table */
+  .meas-wrap { flex: 1; overflow: auto; }
+  table.meas {
+    width: 100%; border-collapse: collapse; font-size: 11px;
+  }
+  table.meas thead tr th {
+    background: var(--blue); color: #fff; padding: 5px 6px; text-align: center;
+    font-size: 10px; font-weight: 600; white-space: nowrap; border: 1px solid #1040801a;
+    position: sticky; top: 0; z-index: 1;
+  }
+  table.meas thead tr.subhead th {
+    background: #1a4880; font-size: 10px;
+  }
+  table.meas tbody tr:nth-child(even) { background: #f7f8fa; }
+  table.meas tbody td {
+    padding: 2px 4px; border: 1px solid #ddd; text-align: center; vertical-align: middle;
+  }
+  table.meas tbody td.row-num { background: var(--gray1); font-weight: 600; color: var(--gray4); font-size: 10px; }
+  table.meas tbody td.coil-no { text-align: left; font-size: 10px; white-space: nowrap; background: #fafbfc; }
+  table.meas input.cell-input {
+    width: 60px; padding: 2px 4px; text-align: center; font-size: 11px;
+    border: 1px solid transparent; border-radius: 2px; background: transparent;
+  }
+  table.meas input.cell-input:focus {
+    border-color: var(--blue); background: #f5f9ff; outline: none;
+  }
+  table.meas .burr-check { width: 16px; height: 16px; cursor: pointer; }
+
+  /* tolerance indicator */
+  .tol-bar { display: flex; gap: 12px; align-items: center; font-size: 11px; }
+  .tol-item { display: flex; align-items: center; gap: 4px; }
+  .tol-box { width: 14px; height: 14px; border-radius: 2px; }
+  .tol-box.ok  { background: var(--green-lt); border: 1px solid var(--green); }
+  .tol-box.ng  { background: var(--red-lt); border: 1px solid var(--red); }
+
+  /* ══════════════════════════════════════
+     LAPORAN
+  ══════════════════════════════════════ */
+  #panel-report { gap: 12px; }
+  .report-toolbar { display: flex; gap: 8px; align-items: center; }
+  .report-paper {
+    background: var(--white); border: 1px solid var(--gray2);
+    padding: 24px 28px; font-size: 11px; min-height: 600px;
+  }
+  .rpt-title { text-align: center; font-size: 14px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+  .rpt-sub { text-align: center; font-size: 11px; color: var(--gray4); margin-bottom: 14px; }
+  .rpt-section { font-weight: 700; font-size: 11px; text-transform: uppercase; background: var(--gray1); padding: 4px 8px; margin-bottom: 6px; border-left: 3px solid var(--blue); }
+  .rpt-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 20px; margin-bottom: 12px; }
+  .rpt-row { display: flex; gap: 6px; font-size: 11px; margin-bottom: 2px; }
+  .rpt-row .lbl { min-width: 120px; color: var(--gray4); }
+  .rpt-row .val { font-weight: 500; }
+  table.rpt {
+    width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 14px;
+  }
+  table.rpt th {
+    background: var(--blue); color: #fff; padding: 4px 6px; text-align: center;
+    border: 1px solid #ccc; font-size: 10px;
+  }
+  table.rpt td { padding: 3px 6px; border: 1px solid #ddd; text-align: center; }
+  table.rpt tbody tr:nth-child(even) { background: #f7f8fa; }
+  .rpt-footer { margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .rpt-sign { text-align: center; }
+  .rpt-sign-line { border-bottom: 1px solid #333; margin: 40px 10px 4px; }
+  .rpt-sign-name { font-size: 10px; color: var(--gray4); }
+
+  @media print {
+    body { background: #fff; }
+    .navbar, .report-toolbar, #panel-main, #panel-insp { display: none !important; }
+    #view-app { display: block !important; }
+    #panel-report { display: block !important; padding: 0; }
+    .card-header { display: none; }
+    .report-paper { border: none; padding: 0; }
+  }
+
+  /* ══════════════════════════════════════
+     MODAL / OVERLAY
+  ══════════════════════════════════════ */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-box {
+    background: var(--white); border-radius: 6px; box-shadow: 0 8px 32px rgba(0,0,0,.3);
+    min-width: 320px; max-width: 460px; overflow: hidden;
+  }
+  .modal-header { background: var(--blue); color: #fff; padding: 8px 14px; font-size: 12px; font-weight: 700; }
+  .modal-header.danger { background: var(--red); }
+  .modal-body { padding: 16px 14px; font-size: 12px; }
+  .modal-footer { padding: 8px 14px; background: var(--gray1); border-top: 1px solid var(--gray2); display: flex; gap: 6px; justify-content: flex-end; }
+
+  /* TOAST */
+  .toast-wrap { position: fixed; bottom: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+  .toast { background: #222; color: #fff; padding: 8px 14px; border-radius: 4px; font-size: 12px; opacity: 0; transform: translateY(10px); transition: all .3s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.ok  { background: var(--green); }
+  .toast.err { background: var(--red); }
+  .toast.warn { background: #8a6000; }
+
+  /* LOADING SPINNER */
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* SETTINGS panel */
+  #panel-settings { gap: 12px; }
+  .settings-card { max-width: 600px; }
+  .settings-row { margin-bottom: 12px; }
+  .settings-row label { display: block; font-size: 11px; font-weight: 600; color: var(--gray4); margin-bottom: 4px; text-transform: uppercase; }
+  .settings-row input { width: 100%; }
+  .settings-hint { font-size: 10px; color: var(--gray3); margin-top: 3px; }
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     LOGIN VIEW
+═══════════════════════════════════════════ -->
+<div id="view-login" class="view active">
+  <div class="login-box">
+    <div class="login-header">
+      <div class="logo-bar">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+        </div>
+        <h1>SLITTING COIL INSPECTION</h1>
+      </div>
+      <p>PT. HSI — Quality Control System</p>
+    </div>
+    <div class="login-body">
+      <div id="login-err" class="login-err">Username atau password salah.</div>
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="inp-user" placeholder="Masukkan username" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <div class="field-pass">
+          <input type="password" id="inp-pass" placeholder="Masukkan password" autocomplete="current-password">
+          <button class="toggle-pass" type="button" onclick="togglePassView()" title="Tampilkan password">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="login-loading" style="display:none;text-align:center;margin-bottom:12px;font-size:11px;color:var(--gray3);">
+        <span class="spinner" style="border-color:rgba(0,0,0,.2);border-top-color:var(--blue);"></span> Memverifikasi...
+      </div>
+      <button class="btn-login" onclick="doLogin()">Masuk</button>
+    </div>
+    <div class="login-footer">v2.0 Web Edition &nbsp;|&nbsp; Powered by Google Sheets</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     APP SHELL
+═══════════════════════════════════════════ -->
+<div id="view-app" class="view">
+  <nav class="navbar">
+    <div class="nav-brand">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,.8)"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+      Slitting Coil Inspection &nbsp;<span>| PT. HSI</span>
+    </div>
+    <button class="nav-btn" onclick="showPanel('main')" id="nbtn-main">&#127968; Main</button>
+    <button class="nav-btn" onclick="showPanel('insp')" id="nbtn-insp" disabled>&#128203; Inspeksi</button>
+    <button class="nav-btn" onclick="showPanel('report')" id="nbtn-report" disabled>&#128196; Laporan</button>
+    <button class="nav-btn" onclick="showPanel('settings')">&#9881; Pengaturan</button>
+    <div class="nav-spacer"></div>
+    <div class="nav-user">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      <span id="nav-username">—</span>
+    </div>
+    <button class="nav-btn" onclick="doLogout()">Keluar</button>
+  </nav>
+
+  <div class="app-body">
+
+    <!-- ═══ PANEL: MAIN (InspectionMainForm) ═══ -->
+    <div class="panel active" id="panel-main">
+      <div class="main-top">
+        <!-- Kiri: Input Process -->
+        <div class="card">
+          <div class="card-header">&#128269; Data Proses</div>
+          <div class="card-body">
+            <div class="process-row">
+              <label>Process No</label>
+              <input type="text" id="inp-processno" placeholder="mis: 25-19267-00-00" style="flex:1" onkeydown="if(event.key==='Enter')fetchProcess()">
+              <button class="btn btn-primary btn-sm" onclick="fetchProcess()">Cari</button>
+            </div>
+            <div class="process-row">
+              <label>Line</label>
+              <select id="inp-line" style="flex:1">
+                <option>Slitter</option>
+                <option>Slitter 1</option>
+                <option>Slitter 2</option>
+              </select>
+            </div>
+            <div class="process-row" style="margin-top:4px">
+              <label>Inspected By</label>
+              <input type="text" id="inp-inspby" readonly style="flex:1">
+            </div>
+            <div class="process-row">
+              <label>Tgl. Inspeksi</label>
+              <input type="text" id="inp-tgl" readonly style="flex:1">
+            </div>
+            <hr style="border:none;border-top:1px solid var(--gray2);margin:8px 0">
+            <div class="info-grid" id="order-info" style="display:none">
+              <div class="info-item"><span class="lbl">Customer</span><span class="val" id="oi-cust">—</span></div>
+              <div class="info-item"><span class="lbl">Mother Coil</span><span class="val" id="oi-mother">—</span></div>
+              <div class="info-item"><span class="lbl">Material</span><span class="val" id="oi-mat">—</span></div>
+              <div class="info-item"><span class="lbl">Jml. Coil</span><span class="val" id="oi-qty">—</span></div>
+              <div class="info-item"><span class="lbl">Thick Std</span><span class="val" id="oi-thick">—</span></div>
+              <div class="info-item"><span class="lbl">Width Std</span><span class="val" id="oi-width">—</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kanan: Status -->
+        <div class="card">
+          <div class="card-header green">&#128203; Status Inspeksi</div>
+          <div class="card-body">
+            <div id="status-empty" style="color:var(--gray3);font-size:11px;padding:8px 0">Masukkan Process No untuk memulai.</div>
+            <div id="status-info" style="display:none">
+              <div class="process-row"><label>Total Coil</label><span id="st-total" style="font-weight:700">0</span></div>
+              <div class="process-row"><label>Sudah Diinspeksi</label><span id="st-done" style="font-weight:700;color:var(--green)">0</span></div>
+              <div class="process-row"><label>Belum</label><span id="st-pending" style="font-weight:700;color:var(--amber)">0</span></div>
+              <div class="process-row"><label>NG (Tidak Sesuai)</label><span id="st-ng" style="font-weight:700;color:var(--red)">0</span></div>
+              <hr style="border:none;border-top:1px solid var(--gray2);margin:8px 0">
+              <button class="btn btn-primary" style="width:100%;margin-bottom:6px" onclick="startInspection()">&#128203; Mulai Inspeksi Terpilih</button>
+              <button class="btn btn-success" style="width:100%" onclick="generateReport()">&#128196; Generate Laporan</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ListView Coil -->
+      <div class="card" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+        <div class="card-header">&#128220; Daftar Slit Coil
+          <span style="margin-left:auto;font-weight:400;font-size:10px" id="lv-count"></span>
+        </div>
+        <div class="card-body" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:8px">
+          <div class="listview-wrap" style="flex:1">
+            <table class="lv" id="lv-coil">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Slit Coil No</th>
+                  <th>Size (Th × W)</th>
+                  <th>Devide</th>
+                  <th>Thick Top</th>
+                  <th>Width Top</th>
+                  <th>Burr</th>
+                  <th>Thick End</th>
+                  <th>Width End</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="lv-body">
+                <tr><td colspan="10" style="text-align:center;color:var(--gray3);padding:20px">Belum ada data</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="bottom-bar">
+            <div class="conn-status">
+              <div class="conn-dot" id="conn-dot"></div>
+              <span id="conn-label">Belum terhubung ke Google Sheets</span>
+            </div>
+            <span style="flex:1"></span>
+            <button class="btn btn-sm" onclick="saveAllToSheets()" id="btn-save-all" disabled>&#128190; Simpan Semua ke Sheets</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL: INSPEKSI (frmSlitterThick) ═══ -->
+    <div class="panel" id="panel-insp">
+      <div class="card">
+        <div class="card-header">&#128203; Form Inspeksi Slitting Coil
+          <button class="btn btn-sm nav-btn" style="margin-left:auto" onclick="showPanel('main')">&#8592; Kembali</button>
+        </div>
+        <div class="card-body">
+          <div class="insp-header-info" id="insp-header-info">
+            <div class="insp-info-box"><div class="lbl">Process No</div><div class="val" id="ih-procno">—</div></div>
+            <div class="insp-info-box"><div class="lbl">Inspected By</div><div class="val" id="ih-inspby">—</div></div>
+            <div class="insp-info-box"><div class="lbl">Tgl. Inspeksi</div><div class="val" id="ih-tgl">—</div></div>
+            <div class="insp-info-box"><div class="lbl">Line</div><div class="val" id="ih-line">—</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tolerance Info -->
+      <div class="card">
+        <div class="card-header">&#127919; Toleransi Ukuran</div>
+        <div class="card-body" style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+          <div class="tol-bar">
+            <div class="tol-item"><div class="tol-box ok"></div><span>Sesuai toleransi</span></div>
+            <div class="tol-item"><div class="tol-box ng"></div><span>NG / Tidak sesuai</span></div>
+          </div>
+          <div style="font-size:11px;color:var(--gray4);display:flex;gap:16px;flex-wrap:wrap">
+            <span>Thick: <strong id="tol-thick-range">±0.05 mm</strong></span>
+            <span>Width: <strong id="tol-width-range">±0.5 mm</strong></span>
+            <span>Burr Max: <strong id="tol-burr-max">0.1 mm</strong></span>
+          </div>
+          <span style="flex:1"></span>
+          <div>
+            <label style="font-size:11px;color:var(--gray4)">Mode ukur Thick:</label>
+            <select id="thick-mode" onchange="renderInspTable()" style="margin-left:6px">
+              <option value="3">3 Titik (Awal-Tengah-Akhir)</option>
+              <option value="1">1 Titik</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Measurement Table -->
+      <div class="card" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+        <div class="card-header green">&#9998; Tabel Pengukuran</div>
+        <div class="card-body" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:6px">
+          <div class="meas-wrap" style="flex:1">
+            <table class="meas" id="meas-table">
+              <thead>
+                <tr>
+                  <th rowspan="2" style="width:28px">#</th>
+                  <th rowspan="2" style="min-width:130px">Slit Coil No</th>
+                  <th rowspan="2" style="width:60px">Devide</th>
+                  <th colspan="3">Thick Top (mm)</th>
+                  <th rowspan="2" style="width:50px">Burr Top</th>
+                  <th colspan="1">Width Top (mm)</th>
+                  <th colspan="3">Thick End (mm)</th>
+                  <th colspan="1">Width End (mm)</th>
+                </tr>
+                <tr class="subhead">
+                  <th style="width:60px">Awal</th>
+                  <th style="width:60px">Tengah</th>
+                  <th style="width:60px">Akhir</th>
+                  <th style="width:60px">Actual</th>
+                  <th style="width:60px">Awal</th>
+                  <th style="width:60px">Tengah</th>
+                  <th style="width:60px">Akhir</th>
+                  <th style="width:60px">Actual</th>
+                </tr>
+              </thead>
+              <tbody id="meas-body">
+                <tr><td colspan="12" style="text-align:center;color:var(--gray3);padding:20px">Belum ada item inspeksi</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="display:flex;gap:8px;padding-top:8px;align-items:center">
+            <button class="btn" onclick="showPanel('main')">&#8592; Batal</button>
+            <span style="flex:1"></span>
+            <button class="btn btn-success" onclick="saveInspection()">&#128190; Simpan Hasil Inspeksi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL: LAPORAN ═══ -->
+    <div class="panel" id="panel-report">
+      <div class="card">
+        <div class="card-header">&#128196; Laporan Hasil Inspeksi</div>
+        <div class="card-body">
+          <div class="report-toolbar">
+            <button class="btn" onclick="showPanel('main')">&#8592; Kembali</button>
+            <button class="btn btn-primary" onclick="window.print()">&#128438; Print</button>
+            <button class="btn btn-success" onclick="exportReport()">&#128196; Export Data</button>
+            <span style="flex:1"></span>
+            <span id="rpt-processno-badge" style="font-size:11px;font-weight:600;color:var(--blue)"></span>
+          </div>
+        </div>
+      </div>
+      <div class="report-paper" id="report-paper">
+        <div class="rpt-title">LAPORAN HASIL INSPEKSI SLITTING COIL</div>
+        <div class="rpt-sub">PT. HSI &mdash; Quality Control Department</div>
+        <div class="rpt-section">DATA PROSES</div>
+        <div class="rpt-info-grid">
+          <div>
+            <div class="rpt-row"><span class="lbl">Inspection By</span><span>:</span><span class="val" id="rpt-inspby">—</span></div>
+            <div class="rpt-row"><span class="lbl">Process No</span><span>:</span><span class="val" id="rpt-procno">—</span></div>
+            <div class="rpt-row"><span class="lbl">Tanggal Inspeksi</span><span>:</span><span class="val" id="rpt-tgl">—</span></div>
+          </div>
+          <div>
+            <div class="rpt-row"><span class="lbl">Line</span><span>:</span><span class="val" id="rpt-line">—</span></div>
+            <div class="rpt-row"><span class="lbl">Customer</span><span>:</span><span class="val" id="rpt-cust">—</span></div>
+            <div class="rpt-row"><span class="lbl">Mother Coil</span><span>:</span><span class="val" id="rpt-mother">—</span></div>
+          </div>
+        </div>
+        <div class="rpt-section">DETAIL HASIL INSPECTION PRODUCT</div>
+        <table class="rpt" id="rpt-table">
+          <thead>
+            <tr>
+              <th rowspan="2">#</th>
+              <th rowspan="2">Slit Coil No</th>
+              <th rowspan="2">Size</th>
+              <th rowspan="2">Devide</th>
+              <th colspan="3">Top</th>
+              <th colspan="3">End</th>
+              <th rowspan="2">Status</th>
+            </tr>
+            <tr>
+              <th>Thick</th><th>Width</th><th>Burr</th>
+              <th>Thick</th><th>Width</th><th>Burr</th>
+            </tr>
+          </thead>
+          <tbody id="rpt-body">
+            <tr><td colspan="12" style="text-align:center;color:var(--gray3)">—</td></tr>
+          </tbody>
+        </table>
+        <div class="rpt-footer">
+          <div class="rpt-sign">
+            <div class="rpt-sign-line"></div>
+            <div class="rpt-sign-name">Inspector</div>
+            <div id="rpt-sign-insp" style="font-size:11px;font-weight:600;margin-top:2px">—</div>
+          </div>
+          <div class="rpt-sign">
+            <div class="rpt-sign-line"></div>
+            <div class="rpt-sign-name">Mengetahui</div>
+            <div style="font-size:11px;font-weight:600;margin-top:2px">Supervisor QC</div>
+          </div>
+          <div class="rpt-sign">
+            <div class="rpt-sign-line"></div>
+            <div class="rpt-sign-name">Menyetujui</div>
+            <div style="font-size:11px;font-weight:600;margin-top:2px">Manager Produksi</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL: SETTINGS ═══ -->
+    <div class="panel" id="panel-settings">
+      <div class="card settings-card">
+        <div class="card-header">&#9881; Pengaturan Koneksi Google Sheets</div>
+        <div class="card-body">
+          <div class="settings-row">
+            <label>Google Apps Script Web App URL</label>
+            <input type="text" id="cfg-url" placeholder="https://script.google.com/macros/s/XXXXXX/exec">
+            <div class="settings-hint">Deploy Apps Script sebagai Web App, paste URL-nya di sini. Lihat panduan di README.</div>
+          </div>
+          <div class="settings-row">
+            <label>Google Spreadsheet ID</label>
+            <input type="text" id="cfg-sheetid" placeholder="1BxiMVs0XRA...">
+            <div class="settings-hint">Dari URL Google Sheets: docs.google.com/spreadsheets/d/<strong>[ID ini]</strong>/edit</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-primary" onclick="saveSettings()">&#128190; Simpan</button>
+            <button class="btn" onclick="testConnection()">&#128246; Test Koneksi</button>
+          </div>
+          <hr style="border:none;border-top:1px solid var(--gray2);margin:16px 0">
+          <div style="font-size:11px;color:var(--gray4)">
+            <strong>Struktur Google Sheets yang diperlukan:</strong><br>
+            Sheet 1: <code>tbl_users</code> — kolom: username, password, nama_lengkap<br>
+            Sheet 2: <code>inspection_result</code> — kolom: ResultID, Slit_COIL_NO, ProcessNo, InspectedBy, Size_Name, InspectionTimestamp, SL_Width_Top1_Actual, Thick_Top1_Actual, Burr_Top_Actual, SL_Width_End1_Actual, Thick_End1_Actual, chk_get_coil_no<br>
+            Sheet 3: <code>process_data</code> — kolom: ProcessNo, Customer, MotherCoil, Material, ThickNominal, WidthNominal, ThickTol, WidthTol, BurrMax<br>
+            Sheet 4: <code>slit_coil_list</code> — kolom: ProcessNo, SlitCoilNo, SizeName, DevideNo<br>
+          </div>
+          <hr style="border:none;border-top:1px solid var(--gray2);margin:16px 0">
+          <div style="font-size:11px;color:var(--gray4)">
+            <strong>Mode Offline (Tanpa Google Sheets):</strong><br>
+            Jika URL belum dikonfigurasi, aplikasi menggunakan data demo lokal (localStorage). Cocok untuk testing form sebelum integrasi Sheets.
+          </div>
+          <div style="margin-top:8px">
+            <button class="btn btn-sm" onclick="loadDemoData()">&#128196; Load Data Demo</button>
+            <button class="btn btn-sm btn-danger" onclick="clearLocalData()" style="margin-left:6px">&#128465; Hapus Data Lokal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /app-body -->
+</div><!-- /view-app -->
+
+<!-- ═══ MODAL NG ═══ -->
+<div class="modal-overlay" id="modal-ng">
+  <div class="modal-box">
+    <div class="modal-header danger">&#9888; Nilai NG — Konfirmasi</div>
+    <div class="modal-body">
+      <p style="margin-bottom:10px">Nilai yang diinput <strong id="ng-field-name"></strong> = <strong id="ng-value"></strong> berada di luar toleransi.</p>
+      <p>Standar: <strong id="ng-std"></strong></p>
+      <p style="margin-top:8px;font-size:11px;color:var(--gray4)">Apakah Anda yakin ingin menyimpan nilai ini sebagai NG?</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeNgModal(true)">Tetap Simpan (NG)</button>
+      <button class="btn btn-primary" onclick="closeNgModal(false)">Koreksi Nilai</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// APP STATE
+// ══════════════════════════════════════════════════════
+const APP = {
+  user: null,
+  processNo: '',
+  processInfo: null,
+  coilList: [],
+  inspResults: {},  // keyed by SlitCoilNo
+  currentPanel: 'main',
+  cfg: {
+    gasUrl: '',
+    sheetId: ''
+  }
+};
+
+// Tolerances (can be overridden from process_data sheet)
+let TOL = { thickPct: 0.04, widthMm: 0.5, burrMax: 0.1 };
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  loadConfig();
+  // set date
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('id-ID', {day:'2-digit',month:'2-digit',year:'numeric'});
+  document.getElementById('inp-tgl').value = dateStr;
+
+  // Enter key on login
+  document.getElementById('inp-pass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+});
+
+// ══════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════
+function loadConfig() {
+  const saved = JSON.parse(localStorage.getItem('hsi_cfg') || '{}');
+  APP.cfg.gasUrl   = saved.gasUrl || '';
+  APP.cfg.sheetId  = saved.sheetId || '';
+  document.getElementById('cfg-url').value = APP.cfg.gasUrl;
+  document.getElementById('cfg-sheetid').value = APP.cfg.sheetId;
+  updateConnStatus();
+}
+function saveSettings() {
+  APP.cfg.gasUrl  = document.getElementById('cfg-url').value.trim();
+  APP.cfg.sheetId = document.getElementById('cfg-sheetid').value.trim();
+  localStorage.setItem('hsi_cfg', JSON.stringify(APP.cfg));
+  updateConnStatus();
+  showToast('Pengaturan disimpan.', 'ok');
+}
+function updateConnStatus() {
+  const dot = document.getElementById('conn-dot');
+  const lbl = document.getElementById('conn-label');
+  if (APP.cfg.gasUrl) {
+    dot.className = 'conn-dot ok';
+    lbl.textContent = 'Terhubung ke Google Sheets';
+  } else {
+    dot.className = 'conn-dot';
+    lbl.textContent = 'Mode offline (localStorage) — atur URL di Pengaturan';
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// GAS API HELPER
+// ══════════════════════════════════════════════════════
+async function gasGet(action, params = {}) {
+  if (!APP.cfg.gasUrl) return null;
+  const url = new URL(APP.cfg.gasUrl);
+  url.searchParams.set('action', action);
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  const res = await fetch(url.toString());
+  return res.json();
+}
+async function gasPost(action, data = {}) {
+  if (!APP.cfg.gasUrl) return null;
+  const res = await fetch(APP.cfg.gasUrl, {
+    method: 'POST',
+    body: JSON.stringify({ action, ...data })
+  });
+  return res.json();
+}
+
+// ══════════════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════════════
+// Demo users (fallback if no Sheets configured)
+const DEMO_USERS = [
+  { username: 'admin',    password: 'admin123',  nama_lengkap: 'Administrator QC' },
+  { username: 'operator', password: 'op123',     nama_lengkap: 'Operator Slitting' },
+  { username: 'aku',      password: 'pass123',   nama_lengkap: 'Demo User' },
+];
+
+function togglePassView() {
+  const inp = document.getElementById('inp-pass');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+async function doLogin() {
+  const u = document.getElementById('inp-user').value.trim();
+  const p = document.getElementById('inp-pass').value;
+  const err = document.getElementById('login-err');
+  const loading = document.getElementById('login-loading');
+  err.classList.remove('show');
+
+  if (!u || !p) { err.textContent = 'Username dan password harus diisi!'; err.classList.add('show'); return; }
+
+  loading.style.display = 'block';
+  let user = null;
+
+  // Try Google Sheets first
+  if (APP.cfg.gasUrl) {
+    try {
+      const res = await gasGet('login', { username: u, password: p });
+      if (res && res.success) user = res.user;
+    } catch(e) { /* fall through to demo */ }
+  }
+
+  // Fallback: local demo users
+  if (!user) {
+    user = DEMO_USERS.find(x => x.username === u && x.password === p) || null;
+  }
+
+  loading.style.display = 'none';
+
+  if (user) {
+    APP.user = user;
+    document.getElementById('nav-username').textContent = user.nama_lengkap;
+    document.getElementById('inp-inspby').value = user.nama_lengkap;
+    document.getElementById('ih-inspby').textContent = user.nama_lengkap;
+    document.getElementById('view-login').classList.remove('active');
+    document.getElementById('view-app').classList.add('active');
+    showToast('Selamat datang, ' + user.nama_lengkap + '!', 'ok');
+  } else {
+    err.textContent = 'Username atau password salah.';
+    err.classList.add('show');
+  }
+}
+
+function doLogout() {
+  APP.user = null; APP.processNo = ''; APP.coilList = []; APP.inspResults = {};
+  document.getElementById('view-app').classList.remove('active');
+  document.getElementById('view-login').classList.add('active');
+  document.getElementById('inp-user').value = '';
+  document.getElementById('inp-pass').value = '';
+  document.getElementById('lv-body').innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--gray3);padding:20px">Belum ada data</td></tr>';
+}
+
+// ══════════════════════════════════════════════════════
+// PANEL NAVIGATION
+// ══════════════════════════════════════════════════════
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  APP.currentPanel = id;
+}
+
+// ══════════════════════════════════════════════════════
+// FETCH PROCESS DATA
+// ══════════════════════════════════════════════════════
+async function fetchProcess() {
+  const pno = document.getElementById('inp-processno').value.trim();
+  if (!pno) { showToast('Masukkan Process No terlebih dahulu.', 'warn'); return; }
+  APP.processNo = pno;
+
+  // Update header displays
+  document.getElementById('ih-procno').textContent = pno;
+  document.getElementById('ih-tgl').textContent = document.getElementById('inp-tgl').value;
+  document.getElementById('ih-line').textContent = document.getElementById('inp-line').value;
+  document.getElementById('rpt-procno').textContent = pno;
+  document.getElementById('rpt-tgl').textContent = document.getElementById('inp-tgl').value;
+  document.getElementById('rpt-line').textContent = document.getElementById('inp-line').value;
+  document.getElementById('rpt-inspby').textContent = APP.user.nama_lengkap;
+  document.getElementById('rpt-processno-badge').textContent = pno;
+  document.getElementById('rpt-sign-insp').textContent = APP.user.nama_lengkap;
+
+  let processInfo = null;
+  let coilList = [];
+
+  // Try Sheets
+  if (APP.cfg.gasUrl) {
+    try {
+      const res = await gasGet('getProcess', { processNo: pno });
+      if (res && res.success) {
+        processInfo = res.processInfo;
+        coilList = res.coilList;
+      }
+    } catch(e) {}
+  }
+
+  // Demo fallback
+  if (!processInfo) {
+    processInfo = getDemoProcessInfo(pno);
+    coilList = getDemoCoilList(pno);
+  }
+
+  if (!processInfo) { showToast('Process No tidak ditemukan.', 'err'); return; }
+
+  APP.processInfo = processInfo;
+  APP.coilList = coilList;
+
+  // Render order info
+  document.getElementById('order-info').style.display = 'grid';
+  document.getElementById('oi-cust').textContent  = processInfo.customer  || '—';
+  document.getElementById('oi-mother').textContent = processInfo.motherCoil || '—';
+  document.getElementById('oi-mat').textContent   = processInfo.material  || '—';
+  document.getElementById('oi-qty').textContent   = coilList.length + ' coil';
+  document.getElementById('oi-thick').textContent = processInfo.thickNominal + ' ± ' + processInfo.thickTol + ' mm';
+  document.getElementById('oi-width').textContent = processInfo.widthNominal + ' ± ' + processInfo.widthTol + ' mm';
+
+  document.getElementById('rpt-cust').textContent   = processInfo.customer || '—';
+  document.getElementById('rpt-mother').textContent  = processInfo.motherCoil || '—';
+
+  // Tolerance
+  TOL.thickPct = parseFloat(processInfo.thickTol) || 0.05;
+  TOL.widthMm  = parseFloat(processInfo.widthTol) || 0.5;
+  TOL.burrMax  = parseFloat(processInfo.burrMax)  || 0.1;
+  document.getElementById('tol-thick-range').textContent = '±' + TOL.thickPct + ' mm';
+  document.getElementById('tol-width-range').textContent = '±' + TOL.widthMm  + ' mm';
+  document.getElementById('tol-burr-max').textContent    = TOL.burrMax + ' mm';
+
+  renderListView();
+  updateStatusPanel();
+
+  document.getElementById('status-empty').style.display = 'none';
+  document.getElementById('status-info').style.display = 'block';
+  document.getElementById('nbtn-insp').disabled = false;
+  document.getElementById('nbtn-report').disabled = false;
+  document.getElementById('btn-save-all').disabled = false;
+
+  showToast('Data proses ditemukan: ' + coilList.length + ' coil.', 'ok');
+}
+
+// ══════════════════════════════════════════════════════
+// DEMO DATA
+// ══════════════════════════════════════════════════════
+function getDemoProcessInfo(pno) {
+  return {
+    processNo: pno,
+    customer: 'PT. Demo Customer',
+    motherCoil: '250717140',
+    material: 'SPCC 1.2mm',
+    thickNominal: 1.2,
+    widthNominal: 224.0,
+    thickTol: 0.05,
+    widthTol: 0.5,
+    burrMax: 0.1
+  };
+}
+function getDemoCoilList(pno) {
+  const items = [];
+  const groups = 2;
+  const perGroup = 5;
+  for (let g = 1; g <= groups; g++) {
+    for (let i = 1; i <= perGroup; i++) {
+      const coilNo = '250717140-41' + String(1000 + (g-1)*perGroup + i - 1).slice(1);
+      const width = i === perGroup ? 180.0 : 224.0;
+      items.push({
+        slitCoilNo: coilNo,
+        sizeName: '1.200 X ' + (width === 180 ? '180.0' : '224.00') + ' X COIL',
+        devideNo: g + '-' + i + '/' + perGroup,
+        thickNominal: 1.2,
+        widthNominal: width
+      });
+    }
+  }
+  return items;
+}
+
+// ══════════════════════════════════════════════════════
+// LISTVIEW
+// ══════════════════════════════════════════════════════
+function renderListView() {
+  const tbody = document.getElementById('lv-body');
+  tbody.innerHTML = '';
+  APP.coilList.forEach((c, idx) => {
+    const r = APP.inspResults[c.slitCoilNo];
+    const done = r && r.saved;
+    const ng = r && r.hasNg;
+    const tr = document.createElement('tr');
+    if (done) tr.classList.add('done');
+    tr.innerHTML = `
+      <td>${idx+1}</td>
+      <td>${c.slitCoilNo}</td>
+      <td>${c.sizeName}</td>
+      <td style="text-align:center">${c.devideNo}</td>
+      <td style="text-align:center">${r ? r.thickTop || '—' : '—'}</td>
+      <td style="text-align:center">${r ? r.widthTop || '—' : '—'}</td>
+      <td style="text-align:center">${r ? (r.burrTop ? 'Ada' : 'OK') : '—'}</td>
+      <td style="text-align:center">${r ? r.thickEnd || '—' : '—'}</td>
+      <td style="text-align:center">${r ? r.widthEnd || '—' : '—'}</td>
+      <td style="text-align:center">${done ? (ng ? '<span class="badge-done" style="background:var(--red)">NG</span>' : '<span class="badge-done">OK</span>') : '<span class="badge-pending">Pending</span>'}</td>
+    `;
+    tr.onclick = () => {
+      document.querySelectorAll('#lv-body tr').forEach(x => x.classList.remove('selected'));
+      tr.classList.add('selected');
+    };
+    tbody.appendChild(tr);
+  });
+  document.getElementById('lv-count').textContent = APP.coilList.length + ' item';
+}
+
+function updateStatusPanel() {
+  const total = APP.coilList.length;
+  const done = APP.coilList.filter(c => APP.inspResults[c.slitCoilNo]?.saved).length;
+  const ng = APP.coilList.filter(c => APP.inspResults[c.slitCoilNo]?.hasNg).length;
+  document.getElementById('st-total').textContent   = total;
+  document.getElementById('st-done').textContent    = done;
+  document.getElementById('st-pending').textContent = total - done;
+  document.getElementById('st-ng').textContent      = ng;
+}
+
+// ══════════════════════════════════════════════════════
+// INSPECTION FORM
+// ══════════════════════════════════════════════════════
+function startInspection() {
+  if (!APP.coilList.length) { showToast('Belum ada data coil.', 'warn'); return; }
+  renderInspTable();
+  showPanel('insp');
+}
+
+function renderInspTable() {
+  const mode = parseInt(document.getElementById('thick-mode').value);
+  const tbody = document.getElementById('meas-body');
+  tbody.innerHTML = '';
+
+  APP.coilList.forEach((c, idx) => {
+    const r = APP.inspResults[c.slitCoilNo] || {};
+    const tr = document.createElement('tr');
+    const thickTopFields = mode === 3
+      ? `<input class="cell-input" type="number" step="0.001" data-coil="${c.slitCoilNo}" data-fld="thickTopA" value="${r.thickTopA||''}" onchange="onCellChange(this)" onkeydown="cellNav(event,this)">
+         <input class="cell-input" type="number" step="0.001" data-coil="${c.slitCoilNo}" data-fld="thickTopM" value="${r.thickTopM||''}" onchange="onCellChange(this)" onkeydown="cellNav(event,this)">
+         <input class="cell-input" type="number" step="0.001" data-coil="${c.slitCoilNo}" data-fld="thickTopZ" value="${r.thickTopZ||''}" onchange="onCellChange(this)" onkeydown="cellNav(event,this)">`
+      : `<input class="cell-input" type="number" step="0.001" data-coil="${c.slitCoilNo}" data-fld="thickTopA" value="${r.thickTopA||''}" onchange="onCellChange(this)" onkeydown="cellNav(event,this)" style="width:80px">
+         <td style="color:var(--gray3);font-size:10px">—</td><td style="color:var(--gray3);font-size:10px">—</td>`;
+
+    const thickEndFields = mode === 3
+      ? `<input class="cell-input" type="number" step="0.001" data-coil="${c.slitCoilNo}" data-fld="thickEndA" value="${r.thickEndA||''}" onchange="onCellChange(this)" onkeydown="cellNav(event,this)">
+         <input class="cell-input" type="number" step="0.001" data-coil="${c.slitCoilNo}" data-fld="thickEndM" value="${r.thickEndM||''}" onchange="onCellChange(this)" onkeydown="cellNav(event,this)">
+         <input class="cell-input" type="number" step="0.001" data-coil="${c.slitCoilNo}" data-fld="thickEndZ" value="${r.thickEndZ||''}" onchange="onCellChange(this)" onkeydown="cellNav(event,this)">`
+      : `<input class="cell-input" type="number" step="0.001" data-coil="${c.slitCoilNo}" data-fld="thickEndA" value="${r.thickEndA||''}" onchange="onCellChange(this)" onkeydown="cellNav(event,this)" style="width:80px">
+         <td style="color:var(--gray3);font-size:10px">—</td><td style="color:var(--gray3);font-size:10px">—</td>`;
+
+    tr.innerHTML = `
+      <td class="row-num">${idx+1}</td>
+      <td class="coil-no">${c.slitCoilNo}<br><span style="color:var(--gray3);font-size:9px">${c.sizeName}</span></td>
+      <td style="text-align:center;font-size:10px">${c.devideNo}</td>
+      ${mode===3 ? `<td>${thickTopFields.split('\n')[0]}</td><td>${thickTopFields.split('\n')[1]}</td><td>${thickTopFields.split('\n')[2]}</td>` : `<td>${thickTopFields.split('\n')[0]}</td><td style="color:var(--gray3);font-size:10px;text-align:center">—</td><td style="color:var(--gray3);font-size:10px;text-align:center">—</td>`}
+      <td><input type="checkbox" class="burr-check" data-coil="${c.slitCoilNo}" data-fld="burrTop" ${r.burrTop?'checked':''} onchange="onCellChange(this)"></td>
+      <td><input class="cell-input" type="number" step="0.01" data-coil="${c.slitCoilNo}" data-fld="widthTop" value="${r.widthTop||''}" onchange="onCellChange(this)" onkeydown="cellNav(event,this)" style="width:70px"></td>
+      ${mode===3 ? `<td>${thickEndFields.split('\n')[0]}</td><td>${thickEndFields.split('\n')[1]}</td><td>${thickEndFields.split('\n')[2]}</td>` : `<td>${thickEndFields.split('\n')[0]}</td><td style="color:var(--gray3);font-size:10px;text-align:center">—</td><td style="color:var(--gray3);font-size:10px;text-align:center">—</td>`}
+      <td><input class="cell-input" type="number" step="0.01" data-coil="${c.slitCoilNo}" data-fld="widthEnd" value="${r.widthEnd||''}" onchange="onCellChange(this)" onkeydown="cellNav(event,this)" style="width:70px"></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  // Re-run tolerance coloring
+  document.querySelectorAll('.cell-input[data-fld]').forEach(inp => checkTolerance(inp));
+}
+
+// Rebuild table properly with mode
+function renderInspTableFull() {
+  const mode = parseInt(document.getElementById('thick-mode').value);
+  const tbody = document.getElementById('meas-body');
+  tbody.innerHTML = '';
+
+  APP.coilList.forEach((c, idx) => {
+    const r = APP.inspResults[c.slitCoilNo] || {};
+    const tr = document.createElement('tr');
+    const nominal = c.thickNominal || APP.processInfo?.thickNominal || 1.2;
+    const wNominal = c.widthNominal || APP.processInfo?.widthNominal || 224;
+
+    function inp(fld, w) {
+      return `<input class="cell-input" type="number" step="0.001" style="width:${w||58}px"
+        data-coil="${c.slitCoilNo}" data-fld="${fld}" data-nom-thick="${nominal}" data-nom-width="${wNominal}"
+        value="${r[fld]||''}" onchange="onCellChange(this)" onkeydown="cellNav(event,this)">`;
+    }
+
+    const cells = mode === 3
+      ? `<td>${inp('thickTopA')}</td><td>${inp('thickTopM')}</td><td>${inp('thickTopZ')}</td>
+         <td><input type="checkbox" class="burr-check" data-coil="${c.slitCoilNo}" data-fld="burrTop" ${r.burrTop?'checked':''} onchange="onCellChange(this)"></td>
+         <td>${inp('widthTop',66)}</td>
+         <td>${inp('thickEndA')}</td><td>${inp('thickEndM')}</td><td>${inp('thickEndZ')}</td>
+         <td>${inp('widthEnd',66)}</td>`
+      : `<td>${inp('thickTopA',70)}</td><td style="color:var(--gray3);font-size:10px;text-align:center">—</td><td style="color:var(--gray3);font-size:10px;text-align:center">—</td>
+         <td><input type="checkbox" class="burr-check" data-coil="${c.slitCoilNo}" data-fld="burrTop" ${r.burrTop?'checked':''} onchange="onCellChange(this)"></td>
+         <td>${inp('widthTop',66)}</td>
+         <td>${inp('thickEndA',70)}</td><td style="color:var(--gray3);font-size:10px;text-align:center">—</td><td style="color:var(--gray3);font-size:10px;text-align:center">—</td>
+         <td>${inp('widthEnd',66)}</td>`;
+
+    tr.innerHTML = `
+      <td class="row-num">${idx+1}</td>
+      <td class="coil-no">${c.slitCoilNo}<br><span style="color:var(--gray3);font-size:9px">${c.sizeName}</span></td>
+      <td style="text-align:center;font-size:10px">${c.devideNo}</td>
+      ${cells}`;
+    tbody.appendChild(tr);
+  });
+
+  document.querySelectorAll('.cell-input').forEach(inp => {
+    if (inp.value) checkTolerance(inp);
+  });
+}
+
+// Override the simple one
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('thick-mode').addEventListener('change', renderInspTableFull);
+  // patch startInspection
+});
+
+const _origStart = window.startInspection;
+window.startInspection = function() {
+  if (!APP.coilList.length) { showToast('Belum ada data coil.', 'warn'); return; }
+  renderInspTableFull();
+  showPanel('insp');
+};
+
+// ── Cell change handler ──
+function onCellChange(el) {
+  const coil = el.dataset.coil;
+  const fld  = el.dataset.fld;
+  if (!APP.inspResults[coil]) APP.inspResults[coil] = {};
+  if (el.type === 'checkbox') {
+    APP.inspResults[coil][fld] = el.checked;
+  } else {
+    APP.inspResults[coil][fld] = el.value;
+    checkTolerance(el);
+  }
+  // compute averages
+  computeAvgs(coil);
+}
+
+function computeAvgs(coil) {
+  const r = APP.inspResults[coil];
+  if (!r) return;
+  // thickTop avg
+  const tTA = [r.thickTopA, r.thickTopM, r.thickTopZ].map(Number).filter(x => x);
+  if (tTA.length) r.thickTop = (tTA.reduce((a,b)=>a+b,0)/tTA.length).toFixed(3);
+  const tEA = [r.thickEndA, r.thickEndM, r.thickEndZ].map(Number).filter(x => x);
+  if (tEA.length) r.thickEnd = (tEA.reduce((a,b)=>a+b,0)/tEA.length).toFixed(3);
+  r.widthTop = r.widthTop;
+  r.widthEnd = r.widthEnd;
+}
+
+// ── Tolerance check ──
+function checkTolerance(el) {
+  const fld = el.dataset.fld;
+  const val = parseFloat(el.value);
+  if (isNaN(val) || !el.value) { el.className = 'cell-input'; return; }
+
+  const coil = APP.coilList.find(c => c.slitCoilNo === el.dataset.coil);
+  const nomT = coil ? parseFloat(coil.thickNominal || APP.processInfo?.thickNominal || 1.2) : 1.2;
+  const nomW = coil ? parseFloat(coil.widthNominal  || APP.processInfo?.widthNominal  || 224) : 224;
+
+  let ok = true;
+  if (fld.startsWith('thick')) ok = Math.abs(val - nomT) <= TOL.thickPct;
+  else if (fld.startsWith('width')) ok = Math.abs(val - nomW) <= TOL.widthMm;
+
+  el.className = 'cell-input ' + (ok ? 'ok' : 'ng');
+  if (!APP.inspResults[el.dataset.coil]) APP.inspResults[el.dataset.coil] = {};
+  if (!ok) APP.inspResults[el.dataset.coil].hasNg = true;
+}
+
+// ── Tab / Enter navigation ──
+const FIELD_ORDER = ['thickTopA','thickTopM','thickTopZ','burrTop','widthTop','thickEndA','thickEndM','thickEndZ','widthEnd'];
+function cellNav(e, el) {
+  if (e.key !== 'Tab' && e.key !== 'Enter') return;
+  e.preventDefault();
+  const allInputs = Array.from(document.querySelectorAll('#meas-body input'));
+  const idx = allInputs.indexOf(el);
+  const next = allInputs[idx + 1];
+  if (next) { next.focus(); next.select(); }
+}
+
+// ── Save inspection ──
+async function saveInspection() {
+  const filled = APP.coilList.filter(c => {
+    const r = APP.inspResults[c.slitCoilNo];
+    return r && (r.thickTopA || r.widthTop);
+  });
+  if (!filled.length) { showToast('Belum ada data yang diisi.', 'warn'); return; }
+
+  filled.forEach(c => {
+    const r = APP.inspResults[c.slitCoilNo];
+    computeAvgs(c.slitCoilNo);
+    r.saved = true;
+    r.timestamp = new Date().toISOString();
+    r.processNo = APP.processNo;
+    r.inspectedBy = APP.user.nama_lengkap;
+    r.sizeName = c.sizeName;
+    r.devideNo = c.devideNo;
+  });
+
+  // Save to localStorage
+  const stored = JSON.parse(localStorage.getItem('hsi_results') || '{}');
+  Object.assign(stored, APP.inspResults);
+  localStorage.setItem('hsi_results', JSON.stringify(stored));
+
+  renderListView();
+  updateStatusPanel();
+  showToast('Hasil inspeksi disimpan (' + filled.length + ' coil).', 'ok');
+  showPanel('main');
+}
+
+// ── Save all to Sheets ──
+async function saveAllToSheets() {
+  const toSave = APP.coilList.filter(c => APP.inspResults[c.slitCoilNo]?.saved);
+  if (!toSave.length) { showToast('Belum ada data tersimpan.', 'warn'); return; }
+
+  if (!APP.cfg.gasUrl) {
+    showToast('URL Google Sheets belum dikonfigurasi. Pergi ke Pengaturan.', 'warn'); return;
+  }
+
+  showToast('Mengirim data ke Google Sheets...', '');
+  let ok = 0;
+  for (const c of toSave) {
+    const r = APP.inspResults[c.slitCoilNo];
+    try {
+      const res = await gasPost('saveResult', {
+        slitCoilNo: c.slitCoilNo, processNo: APP.processNo,
+        inspectedBy: APP.user.nama_lengkap, sizeName: c.sizeName,
+        timestamp: r.timestamp,
+        thickTop: r.thickTop, widthTop: r.widthTop, burrTop: r.burrTop ? 1 : 0,
+        thickEnd: r.thickEnd, widthEnd: r.widthEnd,
+        devideNo: c.devideNo, hasNg: r.hasNg ? 1 : 0
+      });
+      if (res && res.success) ok++;
+    } catch(e) {}
+  }
+  showToast(ok + ' data berhasil dikirim ke Google Sheets.', ok > 0 ? 'ok' : 'err');
+}
+
+// ══════════════════════════════════════════════════════
+// REPORT
+// ══════════════════════════════════════════════════════
+function generateReport() {
+  const tbody = document.getElementById('rpt-body');
+  tbody.innerHTML = '';
+  APP.coilList.forEach((c, idx) => {
+    const r = APP.inspResults[c.slitCoilNo] || {};
+    const ng = r.hasNg;
+    const tr = document.createElement('tr');
+    if (ng) tr.style.background = '#fff5f5';
+    tr.innerHTML = `
+      <td>${idx+1}</td>
+      <td style="text-align:left">${c.slitCoilNo}</td>
+      <td>${c.sizeName}</td>
+      <td>${c.devideNo}</td>
+      <td>${r.thickTop||'—'}</td>
+      <td>${r.widthTop||'—'}</td>
+      <td>${r.burrTop ? 'Ada' : (r.saved ? 'OK' : '—')}</td>
+      <td>${r.thickEnd||'—'}</td>
+      <td>${r.widthEnd||'—'}</td>
+      <td>${r.saved ? (r.burrTopEnd ? 'Ada' : 'OK') : '—'}</td>
+      <td style="font-weight:700;color:${ng?'var(--red)':'var(--green)'}">${r.saved ? (ng ? 'NG' : 'OK') : '—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  showPanel('report');
+}
+
+function exportReport() {
+  const rows = [['No','Slit Coil No','Size','Devide','Thick Top','Width Top','Burr Top','Thick End','Width End','Status']];
+  APP.coilList.forEach((c, idx) => {
+    const r = APP.inspResults[c.slitCoilNo] || {};
+    rows.push([idx+1, c.slitCoilNo, c.sizeName, c.devideNo,
+      r.thickTop||'', r.widthTop||'', r.burrTop?'Ada':'OK',
+      r.thickEnd||'', r.widthEnd||'', r.hasNg?'NG':'OK']);
+  });
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Laporan_Inspeksi_' + APP.processNo + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+// ══════════════════════════════════════════════════════
+// NG MODAL
+// ══════════════════════════════════════════════════════
+let _ngCb = null;
+function showNgModal(fieldName, value, std, cb) {
+  document.getElementById('ng-field-name').textContent = fieldName;
+  document.getElementById('ng-value').textContent = value;
+  document.getElementById('ng-std').textContent = std;
+  document.getElementById('modal-ng').classList.add('show');
+  _ngCb = cb;
+}
+function closeNgModal(keep) {
+  document.getElementById('modal-ng').classList.remove('show');
+  if (_ngCb) _ngCb(keep);
+}
+
+// ══════════════════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════════════════
+async function testConnection() {
+  APP.cfg.gasUrl  = document.getElementById('cfg-url').value.trim();
+  APP.cfg.sheetId = document.getElementById('cfg-sheetid').value.trim();
+  if (!APP.cfg.gasUrl) { showToast('Masukkan URL Apps Script terlebih dahulu.', 'warn'); return; }
+  showToast('Menguji koneksi...', '');
+  try {
+    const res = await gasGet('ping');
+    if (res && res.pong) { showToast('Koneksi berhasil!', 'ok'); updateConnStatus(); }
+    else { showToast('Respon tidak valid dari Apps Script.', 'err'); }
+  } catch(e) { showToast('Gagal terhubung: ' + e.message, 'err'); }
+}
+
+function loadDemoData() {
+  const pno = '25-19267-00-00';
+  document.getElementById('inp-processno').value = pno;
+  fetchProcess();
+  showPanel('main');
+  showToast('Data demo dimuat.', 'ok');
+}
+
+function clearLocalData() {
+  localStorage.removeItem('hsi_results');
+  APP.inspResults = {};
+  renderListView();
+  updateStatusPanel();
+  showToast('Data lokal dihapus.', 'ok');
+}
+
+// ══════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════
+function showToast(msg, type) {
+  const wrap = document.getElementById('toast-wrap');
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  wrap.appendChild(t);
+  requestAnimationFrame(() => { t.classList.add('show'); });
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3200);
+}
+
+// ══════════════════════════════════════════════════════
+// RESTORE SAVED RESULTS ON LOAD
+// ══════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const stored = JSON.parse(localStorage.getItem('hsi_results') || '{}');
+  Object.assign(APP.inspResults, stored);
+  updateConnStatus();
+});
+</script>
+
+<!-- ═══════════════════════════════════════════
+     APPS SCRIPT README (as comment)
+     
+     Buat file Code.gs baru di Google Apps Script, paste kode berikut:
+     
+     function doGet(e) {
+       var action = e.parameter.action;
+       if (action === 'ping') return ContentService.createTextOutput(JSON.stringify({pong:true})).setMimeType(ContentService.MimeType.JSON);
+       if (action === 'login') return handleLogin(e);
+       if (action === 'getProcess') return handleGetProcess(e);
+       return ContentService.createTextOutput(JSON.stringify({error:'Unknown action'})).setMimeType(ContentService.MimeType.JSON);
+     }
+     
+     function doPost(e) {
+       var data = JSON.parse(e.postData.contents);
+       if (data.action === 'saveResult') return handleSaveResult(data);
+       return ContentService.createTextOutput(JSON.stringify({error:'Unknown action'})).setMimeType(ContentService.MimeType.JSON);
+     }
+     
+     function handleLogin(e) {
+       var ss = SpreadsheetApp.openById('YOUR_SHEET_ID');
+       var sheet = ss.getSheetByName('tbl_users');
+       var data = sheet.getDataRange().getValues();
+       var u = e.parameter.username, p = e.parameter.password;
+       for (var i=1; i<data.length; i++) {
+         if (data[i][0]==u && data[i][1]==p) {
+           return json({success:true, user:{username:u, nama_lengkap:data[i][2]}});
+         }
+       }
+       return json({success:false});
+     }
+     
+     function handleGetProcess(e) {
+       var ss = SpreadsheetApp.openById('YOUR_SHEET_ID');
+       var pno = e.parameter.processNo;
+       var pd = ss.getSheetByName('process_data').getDataRange().getValues();
+       var cl = ss.getSheetByName('slit_coil_list').getDataRange().getValues();
+       var info = null;
+       for(var i=1;i<pd.length;i++) { if(pd[i][0]==pno){info={processNo:pno,customer:pd[i][1],motherCoil:pd[i][2],material:pd[i][3],thickNominal:pd[i][4],widthNominal:pd[i][5],thickTol:pd[i][6],widthTol:pd[i][7],burrMax:pd[i][8]};break;} }
+       var coils = [];
+       for(var i=1;i<cl.length;i++) { if(cl[i][0]==pno){coils.push({slitCoilNo:cl[i][1],sizeName:cl[i][2],devideNo:cl[i][3],thickNominal:cl[i][4]||1.2,widthNominal:cl[i][5]||224});} }
+       return json({success:!!info, processInfo:info, coilList:coils});
+     }
+     
+     function handleSaveResult(data) {
+       var ss = SpreadsheetApp.openById('YOUR_SHEET_ID');
+       var sheet = ss.getSheetByName('inspection_result');
+       sheet.appendRow([new Date(),data.slitCoilNo,data.processNo,data.inspectedBy,data.sizeName,data.timestamp,data.widthTop,data.thickTop,data.burrTop,data.widthEnd,data.thickEnd,data.devideNo]);
+       return json({success:true});
+     }
+     
+     function json(obj) {
+       return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+     }
+═══════════════════════════════════════════ -->
+</body>
+</html>
